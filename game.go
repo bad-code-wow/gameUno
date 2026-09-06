@@ -27,6 +27,7 @@ type bgLine struct {
 	angle  float32
 }
 
+var levelRect []rl.Rectangle = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}}
 var frozen = false
 var bg [500]bgLine
 var onFloor = false
@@ -37,7 +38,7 @@ var level []line = []line{{40, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y
 var jumpTimeLeft = 100
 var onLine = line{0, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}
 
-const maxJumpTime = 100
+const maxJumpTime = 200
 
 func drawPlatsAndPlayer() {
 
@@ -47,7 +48,7 @@ func drawPlatsAndPlayer() {
 	}
 
 	for i := range 100 {
-		rl.DrawLineEx(rl.Vector2{X: bg[i].start + (-cam.Offset.Y+500)*.27, Y: float32(1000)}, rl.Vector2{X: bg[i].start + bg[i].angle + (-cam.Offset.Y+500)*.27, Y: -bg[i].length + 1000}, 1.5, rl.Color{R: 0, G: 0, B: 0, A: 128})
+		rl.DrawLineEx(rl.Vector2{X: bg[i].start + (-cam.Offset.Y+500)*.27, Y: float32(1000)}, rl.Vector2{X: bg[i].start + bg[i].angle + (-cam.Offset.Y+500)*.27, Y: -bg[i].length + 1000}, 3.5, rl.Color{R: 0, G: 0, B: 0, A: 255})
 	}
 	rl.DrawRectangleRec(rl.Rectangle{
 		X:      player.pos.X,
@@ -57,6 +58,31 @@ func drawPlatsAndPlayer() {
 	}, rl.Black)
 	for i := range level {
 		rl.DrawLineEx(level[i].start, level[i].end, 10, rl.Black)
+	}
+	for i := range levelRect {
+		rl.DrawRectangleRec(levelRect[i], rl.Black)
+	}
+}
+func checkCollRect() {
+	for i := range levelRect {
+		p1 := rl.Vector2{X: 0, Y: 0}
+		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, &p1) {
+			player.pos.X = p1.X - 16
+			player.vel.X = 0
+		}
+		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height - 16}, &p1) {
+			player.pos.X = p1.X
+			player.vel.X = 0
+		}
+
+		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X, Y: player.pos.Y + 16}, rl.Vector2{X: player.prevPos.X, Y: player.prevPos.Y + 16}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y}, &p1) {
+			player.pos.Y = p1.Y - 16
+			jumpTimeLeft = maxJumpTime
+			//player.vel.Y = max(0, player.vel.Y)
+			fmt.Println(onFloor)
+			onFloor = true
+			fmt.Println(onFloor)
+		}
 	}
 }
 
@@ -97,14 +123,22 @@ func move() {
 
 	}
 	if t < 1.1 && t > 1 {
+		checkCollRect()
 		checkColl(0)
 		frozen = true
 	}
+	checkCollRect()
+	if player.pos.Y > 777 {
+		onFloor = true
+		player.pos.Y = 777
+		player.vel.Y = 0
+		jumpTimeLeft = maxJumpTime
+	}
 
 	jumpTimeLeft -= 10
-	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 && player.vel.Y > -30 {
+	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 && onFloor {
 		player.vel.Y = -30
-	} else {
+		fmt.Println(player.vel.Y)
 	}
 
 	if rl.IsKeyDown(rl.KeyA) {
@@ -113,22 +147,17 @@ func move() {
 	if rl.IsKeyDown(rl.KeyD) {
 		player.vel.X += 2
 	}
-
+	checkCollRect()
 	if !onFloor {
 		player.vel.Y += 1
-		player.pos.Y += player.vel.Y
 	} else {
 		jumpTimeLeft = maxJumpTime
 	}
 	player.pos.X += player.vel.X
-	player.vel.Y += 1
-	if player.pos.Y > 777 {
-		player.pos.Y = 777
-		player.vel.Y = 0
-		jumpTimeLeft = 200
-	}
+
 	checkColl(16)
 	player.vel = player.vel.Multiply(rl.Vector2{X: 0.9, Y: 1.01})
+	player.pos.Y += player.vel.Y
 	player.pos.X += player.vel.X
 
 	onFloor = false
@@ -174,6 +203,7 @@ func main() {
 		rl.BeginTextureMode(tex)
 		rl.ClearBackground(rl.Orange)
 		rl.BeginMode2D(cam)
+
 		drawPlatsAndPlayer()
 		rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
 		rl.EndMode2D()
@@ -182,14 +212,14 @@ func main() {
 
 		rl.BeginDrawing()
 		rl.ClearBackground(rl.Orange)
-		//rl.BeginShaderMode(bloom)
+		rl.BeginShaderMode(bloom)
 		rl.DrawTextureRec(tex.Texture, rl.Rectangle{
 			X:      0,
 			Y:      0,
 			Width:  1600,
 			Height: -900,
 		}, rl.Vector2{}, rl.White)
-		//rl.EndShaderMode()
+		rl.EndShaderMode()
 		rl.EndDrawing()
 
 	}
