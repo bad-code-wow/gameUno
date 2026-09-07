@@ -66,22 +66,25 @@ func drawPlatsAndPlayer() {
 func checkCollRect() {
 	for i := range levelRect {
 		p1 := rl.Vector2{X: 0, Y: 0}
-		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, &p1) {
+		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y}, player.prevPos, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, &p1) {
 			player.pos.X = p1.X - 16
 			player.vel.X = 0
 		}
-		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height - 16}, &p1) {
+		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height - 16}, &p1) && player.pos.Y-16 > levelRect[i].Y {
 			player.pos.X = p1.X
 			player.vel.X = 0
+		}
+
+		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height}, &p1) {
+			player.pos.Y = p1.Y
+			player.vel.Y = 0
 		}
 
 		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X, Y: player.pos.Y + 16}, rl.Vector2{X: player.prevPos.X, Y: player.prevPos.Y + 16}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y}, &p1) {
 			player.pos.Y = p1.Y - 16
 			jumpTimeLeft = maxJumpTime
-			//player.vel.Y = max(0, player.vel.Y)
-			fmt.Println(onFloor)
+			player.vel.Y = max(0, player.vel.Y)
 			onFloor = true
-			fmt.Println(onFloor)
 		}
 	}
 }
@@ -116,6 +119,7 @@ func move() {
 		player.vel = rl.Vector2{X: k.X / 25, Y: k.Y / 25}
 		if rl.IsKeyPressed(rl.KeySpace) {
 			t = 100
+			player.vel.Y = -30
 			//frozen = true
 			checkColl(0)
 		}
@@ -129,39 +133,51 @@ func move() {
 	}
 	checkCollRect()
 	if player.pos.Y > 777 {
+		checkCollRect()
 		onFloor = true
 		player.pos.Y = 777
 		player.vel.Y = 0
 		jumpTimeLeft = maxJumpTime
 	}
 
+	checkCollRect()
 	jumpTimeLeft -= 10
 	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 && onFloor {
 		player.vel.Y = -30
 		fmt.Println(player.vel.Y)
 	}
 
+	checkCollRect()
 	if rl.IsKeyDown(rl.KeyA) {
 		player.vel.X -= 2
 	}
+	checkCollRect()
 	if rl.IsKeyDown(rl.KeyD) {
 		player.vel.X += 2
 	}
 	checkCollRect()
 	if !onFloor {
+		checkCollRect()
 		player.vel.Y += 1
 	} else {
 		jumpTimeLeft = maxJumpTime
 	}
+
 	player.pos.X += player.vel.X
 
 	checkColl(16)
+
 	player.vel = player.vel.Multiply(rl.Vector2{X: 0.9, Y: 1.01})
+
 	player.pos.Y += player.vel.Y
 	player.pos.X += player.vel.X
+	checkCollRect()
 
+	checkCollRect()
 	onFloor = false
+	checkCollRect()
 
+	checkCollRect()
 }
 
 func main() {
