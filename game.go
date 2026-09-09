@@ -27,6 +27,7 @@ type bgLine struct {
 	angle  float32
 }
 
+// test
 var levelRect []rl.Rectangle = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
 var levelEvilRect []rl.Rectangle = []rl.Rectangle{{X: 390, Y: 390, Width: 190, Height: 190}}
 var frozen = false
@@ -93,7 +94,7 @@ func checkCollRect() {
 	for i := range levelRect {
 		p1 := rl.Vector2{X: 0, Y: 0}
 		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y}, rl.Vector2{X: player.prevPos.X + 16, Y: player.prevPos.Y}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, &p1) && player.pos.Y+14 > levelRect[i].Y {
-			fmt.Println("l")
+			//fmt.Println("l")
 			if rl.IsKeyDown(rl.KeyA) || player.vel.X < 0 && !rl.IsKeyDown(rl.KeyD) {
 				player.prevPos = player.pos
 				player.pos.X += player.vel.X
@@ -129,6 +130,7 @@ func checkCollRect() {
 			player.vel.Y = min(0, player.vel.Y)
 			player.pos.Y += player.vel.Y
 			onFloor = true
+			jumping = true
 		}
 	}
 }
@@ -171,24 +173,24 @@ func move() {
 
 	}
 	if t < 1.1 && t > 1 {
-		checkCollRect()
+		//checkCollRect()
 		checkColl(0)
 		frozen = true
 	}
-	checkCollRect()
+	//checkCollRect()
 	if player.pos.Y > 777 {
-		checkCollRect()
+		//checkCollRect()
 		onFloor = true
 		player.pos.Y = 777
 		player.vel.Y = 0
+		jumping = true
 		jumpTimeLeft = maxJumpTime
 	}
 
-	checkCollRect()
+	//checkCollRect()
 	jumpTimeLeft -= 10
-	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 {
+	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 && jumping {
 		player.vel.Y = -30
-		fmt.Println(player.vel.Y)
 	}
 
 	checkCollRect()
@@ -199,9 +201,9 @@ func move() {
 	if rl.IsKeyDown(rl.KeyD) {
 		player.vel.X += 2
 	}
-	checkCollRect()
+	//checkCollRect()
 	if !onFloor {
-		checkCollRect()
+		//checkCollRect()
 		player.vel.Y += 1
 	} else {
 		jumpTimeLeft = maxJumpTime
@@ -217,18 +219,18 @@ func move() {
 	player.pos.X += player.vel.X
 	checkCollRect()
 
-	checkCollRect()
 	onFloor = false
+	//checkCollRect()
+	println(onFloor)
 	checkCollRect()
 
-	checkCollRect()
 }
 
 func main() {
 	for i := range 500 {
-		bg[i].angle = rand.Float32()*1000 - 500
-		bg[i].length = rand.Float32() * 1000
-		bg[i].start = rand.Float32()*3000 - 1500
+		bg[i].angle = rand.Float32()*3000 - 1500
+		bg[i].length = rand.Float32() * 2500
+		bg[i].start = rand.Float32()*30000 - 15000
 	}
 
 	// rl.ToggleFullscreen()
@@ -246,7 +248,7 @@ func main() {
 
 	sTime := rl.GetShaderLocation(spire, "time")
 
-	fmt.Println("shader valid:", rl.IsShaderValid(bloom))
+	//fmt.Println("shader valid:", rl.IsShaderValid(bloom))
 
 	rl.SetTargetFPS(60)
 
