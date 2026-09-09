@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"math/rand"
 
 	rl "github.com/gen2brain/raylib-go/raylib"
@@ -28,15 +27,15 @@ type bgLine struct {
 }
 
 // test
-var levelRect []rl.Rectangle = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
-var levelEvilRect []rl.Rectangle = []rl.Rectangle{{X: 390, Y: 390, Width: 190, Height: 190}}
+var levelRect = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
+var levelEvilRect = []rl.Rectangle{{X: 390, Y: 390, Width: 190, Height: 190}}
 var frozen = false
 var bg [500]bgLine
 var onFloor = false
 var jumping = false
-var player playDat = playDat{pos: rl.Vector2{X: 0, Y: 0}, vel: rl.Vector2{X: 0, Y: 0}}
+var player = playDat{pos: rl.Vector2{X: 0, Y: 0}, vel: rl.Vector2{X: 0, Y: 0}}
 var t float32 = 2
-var level []line = []line{{40, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}, {40, rl.Vector2{X: 100, Y: -800}, rl.Vector2{X: -1300, Y: 600}}}
+var level = []line{{40, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}, {40, rl.Vector2{X: 100, Y: -800}, rl.Vector2{X: -1300, Y: 600}}}
 
 var jumpTimeLeft = 100
 var onLine = line{0, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}
@@ -76,7 +75,7 @@ func die() {
 func drawEvil() {
 	for i := range levelEvilRect {
 		rl.DrawRectangleRec(levelEvilRect[i], rl.White)
-		if rl.CheckCollisionRecs(rl.Rectangle{player.pos.X, player.pos.Y, 8, 8}, levelEvilRect[i]) {
+		if rl.CheckCollisionRecs(rl.Rectangle{X: player.pos.X, Y: player.pos.Y, Width: 8, Height: 8}, levelEvilRect[i]) {
 			die()
 		}
 	}
@@ -135,11 +134,10 @@ func checkCollRect() {
 	}
 }
 
-func checkColl(r float32) {
+func checkColl() {
 	for i := range level {
 		next := rl.Vector2{X: player.pos.X + player.vel.X, Y: player.pos.Y + player.vel.Y}
 		if rl.CheckCollisionLines(player.pos, player.prevPos, level[i].start, level[i].end, &next) || rl.CheckCollisionLines(player.pos, next, level[i].start, level[i].end, &next) {
-			fmt.Print("yooooou\n")
 			player.prevPos = player.pos
 			player.pos = next
 			onLine = level[i]
@@ -167,14 +165,14 @@ func move() {
 			t = 100
 			player.vel.Y = -30
 			//frozen = true
-			checkColl(0)
+			checkColl()
 		}
 		return
 
 	}
 	if t < 1.1 && t > 1 {
 		//checkCollRect()
-		checkColl(0)
+		checkColl()
 		frozen = true
 	}
 	//checkCollRect()
@@ -211,7 +209,7 @@ func move() {
 
 	player.pos.X += player.vel.X
 
-	checkColl(16)
+	checkColl()
 
 	player.vel = player.vel.Multiply(rl.Vector2{X: 0.9, Y: 1.01})
 
