@@ -30,7 +30,7 @@ void main()
     {
         for (int y = -range; y <= range; y++)
         {
-            sum += texture2D(texture0, fragTexCoord + vec2(x, y)*sizeFactor);
+            sum += texture2D(texture0, fragTexCoord + vec2(x, y)*sizeFactor) * 2.0/(float(x+y)+0.1);
         }
     }
 
