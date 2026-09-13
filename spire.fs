@@ -33,12 +33,13 @@ void main()
     vec4 source = texture2D(texture0, fragTexCoord);
 
     float R = dist(fragTexCoord);
-    float theta = angle(fragTexCoord,time*2.0+source.r);
+    float theta = angle(fragTexCoord,time*2.0+source.r*3.14);
 
-    vec3 col = vec3(fract(abs(R*4.0-theta)),fract(abs(R*5.0-theta)),fract(abs(R*1.0-theta)));
+    vec3 col = vec3(fract(abs(R*40.0-theta)),fract(abs(R*5.0-theta)),fract(abs(R*10.0-theta)));
 
     // Calculate final fragment color
-    if(source.r == 1 && source.g == 1 && source.b == 1){
+    if(source.a != 0){
+    col = vec3(1.0-col.r,1.0-col.g,1.0-col.b);
     gl_FragColor = vec4(col,1);
     }else{
     gl_FragColor = source;

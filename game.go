@@ -37,6 +37,8 @@ var player = playDat{pos: rl.Vector2{X: 0, Y: 0}, vel: rl.Vector2{X: 0, Y: 0}}
 var t float32 = 2
 var level = []line{{40, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}, {40, rl.Vector2{X: 100, Y: -800}, rl.Vector2{X: -1300, Y: 600}}}
 
+var mode = 0
+
 var jumpTimeLeft = 100
 var onLine = line{0, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}
 
@@ -225,6 +227,9 @@ func move() {
 }
 
 func main() {
+	cam = rl.Camera2D{Offset: rl.Vector2{X: 0, Y: 0}, Target: rl.Vector2{X: 0, Y: 0}, Rotation: 0, Zoom: 1}
+	clickStart := rl.Vector2{X: 999999999, Y: 99999999}
+	isHolding := false
 	for i := range 500 {
 		bg[i].angle = rand.Float32()*3000 - 1500
 		bg[i].length = rand.Float32() * 2500
@@ -234,6 +239,7 @@ func main() {
 	// rl.ToggleFullscreen()
 	defer rl.CloseWindow()
 	rl.InitWindow(1600, 900, "game")
+	rl.SetTargetFPS(60)
 
 	bloom := rl.LoadShader(
 		"",
@@ -243,71 +249,133 @@ func main() {
 		"",
 		"spire.fs",
 	)
-
-	sTime := rl.GetShaderLocation(spire, "time")
-
-	//fmt.Println("shader valid:", rl.IsShaderValid(bloom))
-
-	rl.SetTargetFPS(60)
-
-	cam = rl.Camera2D{Offset: rl.Vector2{X: 0, Y: 0}, Target: rl.Vector2{X: 0, Y: 0}, Rotation: 0, Zoom: 1}
-
 	tex := rl.LoadRenderTexture(1600, 900)
 	tex2 := rl.LoadRenderTexture(1600, 900)
 	defer rl.UnloadRenderTexture(tex)
 
 	for !rl.WindowShouldClose() {
 
-		rl.SetShaderValue(
-			spire,
-			sTime,
-			[]float32{float32(rl.GetTime())},
-			rl.ShaderUniformFloat,
-		)
-
-		move()
-		if frozen {
-			frozen = false
-			//continue
+		if rl.IsKeyPressed(rl.KeySpace) && mode == 0 {
+			mode = 1
 		}
-		const easing = 3
-		cam.Offset.X = ((player.pos.X*-1 + 800) + cam.Offset.X*(easing-1)) / easing
-		cam.Offset.Y = ((player.pos.Y*-1 + 550) + cam.Offset.Y*(easing-1)) / easing
+		if rl.IsKeyPressed(rl.KeyL) && mode == 0 {
+			mode = 2
+		}
 
-		rl.BeginTextureMode(tex)
-		rl.ClearBackground(rl.Orange)
-		rl.BeginMode2D(cam)
-		drawPlatsAndPlayer()
-		rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
-		rl.EndMode2D()
-		rl.EndTextureMode()
+		if mode == 0 {
+			rl.BeginDrawing()
+			rl.EndDrawing()
+		}
+		if mode == 1 {
+			sTime := rl.GetShaderLocation(spire, "time")
 
-		rl.BeginTextureMode(tex2)
-		rl.ClearBackground(rl.Blank)
-		rl.BeginMode2D(cam)
-		drawEvil()
-		rl.EndMode2D()
-		rl.EndTextureMode()
+			rl.SetShaderValue(
+				spire,
+				sTime,
+				[]float32{float32(rl.GetTime())},
+				rl.ShaderUniformFloat,
+			)
 
-		rl.BeginDrawing()
-		rl.BeginShaderMode(bloom)
-		rl.ClearBackground(rl.Orange)
-		rl.DrawTextureRec(tex.Texture, rl.Rectangle{
-			X:      0,
-			Y:      0,
-			Width:  1600,
-			Height: -900,
-		}, rl.Vector2{}, rl.White)
-		rl.EndShaderMode()
-		rl.BeginShaderMode(spire)
-		rl.DrawTextureRec(tex2.Texture, rl.Rectangle{
-			X:      0,
-			Y:      0,
-			Width:  1600,
-			Height: -900,
-		}, rl.Vector2{}, rl.White)
-		rl.EndShaderMode()
-		rl.EndDrawing()
+			move()
+			if frozen {
+				frozen = false
+				//continue
+			}
+			const easing = 3
+			cam.Offset.X = ((player.pos.X*-1 + 800) + cam.Offset.X*(easing-1)) / easing
+			cam.Offset.Y = ((player.pos.Y*-1 + 550) + cam.Offset.Y*(easing-1)) / easing
 
+			rl.BeginTextureMode(tex)
+			rl.ClearBackground(rl.Orange)
+			rl.BeginMode2D(cam)
+			drawPlatsAndPlayer()
+			rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
+			rl.EndMode2D()
+			rl.EndTextureMode()
+
+			rl.BeginTextureMode(tex2)
+			rl.ClearBackground(rl.Blank)
+			rl.BeginMode2D(cam)
+			drawEvil()
+			rl.EndMode2D()
+			rl.EndTextureMode()
+
+			rl.BeginDrawing()
+			rl.BeginShaderMode(bloom)
+			rl.ClearBackground(rl.Orange)
+			rl.DrawTextureRec(tex.Texture, rl.Rectangle{
+				X:      0,
+				Y:      0,
+				Width:  1600,
+				Height: -900,
+			}, rl.Vector2{}, rl.White)
+			rl.EndShaderMode()
+			rl.BeginShaderMode(spire)
+			rl.DrawTextureRec(tex2.Texture, rl.Rectangle{
+				X:      0,
+				Y:      0,
+				Width:  1600,
+				Height: -900,
+			}, rl.Vector2{}, rl.White)
+			rl.EndShaderMode()
+			rl.EndDrawing()
+
+		}
+		if mode == 2 {
+
+			if rl.IsKeyDown(rl.KeyW) {
+				cam.Offset.Y += 10
+			}
+			if rl.IsKeyDown(rl.KeyA) {
+				cam.Offset.X += 10
+			}
+			if rl.IsKeyDown(rl.KeyS) {
+				cam.Offset.Y -= 10
+			}
+			if rl.IsKeyDown(rl.KeyD) {
+				cam.Offset.X -= 10
+			}
+
+			rl.BeginDrawing()
+			rl.BeginMode2D(cam)
+
+			mouse := rl.GetScreenToWorld2D(rl.GetMousePosition(), cam)
+			rl.ClearBackground(rl.Orange)
+			drawPlatsAndPlayer()
+			drawEvil()
+
+			if isHolding {
+				sx := min(mouse.X, clickStart.X)
+				bx := max(mouse.X, clickStart.X)
+				sy := min(mouse.Y, clickStart.Y)
+				by := max(mouse.Y, clickStart.Y)
+				placedRect := rl.Rectangle{X: sx, Y: sy, Width: bx - sx, Height: by - sy}
+				if rl.IsKeyDown(rl.KeyLeftShift) {
+					rl.DrawRectangleRec(placedRect, rl.White)
+				} else {
+					rl.DrawRectangleRec(placedRect, rl.Blue)
+
+				}
+				if !rl.IsMouseButtonDown(rl.MouseButtonLeft) {
+					if !rl.IsKeyDown(rl.KeyLeftShift) {
+						levelRect = append(levelRect, placedRect)
+					} else {
+						levelEvilRect = append(levelEvilRect, placedRect)
+					}
+					isHolding = false
+				}
+
+			}
+			if rl.IsMouseButtonDown(rl.MouseButtonLeft) && !isHolding {
+				clickStart = mouse
+				isHolding = true
+			}
+
+			if !rl.IsMouseButtonDown(rl.MouseButtonLeft) {
+				isHolding = false
+			}
+			rl.EndMode2D()
+			rl.EndDrawing()
+		}
 	}
 }
