@@ -26,6 +26,14 @@ type bgLine struct {
 	angle  float32
 }
 
+type levelFull struct {
+	levelRect     []rl.Rectangle
+	levelEvilRect []rl.Rectangle
+	level         []line
+}
+
+var bomb = rl.Vector2{X: 10000, Y: 10000}
+
 // test
 var levelRect = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
 var levelEvilRect = []rl.Rectangle{{X: 390, Y: 390, Width: 190, Height: 190}}
@@ -35,8 +43,9 @@ var onFloor = false
 var jumping = false
 var player = playDat{pos: rl.Vector2{X: 0, Y: 0}, vel: rl.Vector2{X: 0, Y: 0}}
 var t float32 = 2
-var level = []line{{40, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}, {40, rl.Vector2{X: 100, Y: -800}, rl.Vector2{X: -1300, Y: 600}}}
-
+var level []line
+var playing bool = false
+var bv float32 = 0
 var mode = 0
 
 var jumpTimeLeft = 100
@@ -50,6 +59,7 @@ func drawPlatsAndPlayer() {
 		r := float32((10*i + int(rl.GetTime()*10)) % 75)
 		rl.DrawCircle(int32((-cam.Offset.X+800)*.7), int32((-cam.Offset.Y+500)*.7), 12*r, rl.Color{R: 255, G: 255, B: 0, A: uint8(255 * ((-r + 75) / 75))})
 	}
+	rl.DrawCircleV(bomb, 32, rl.Black)
 
 	for i := range 500 {
 		rl.DrawLineEx(rl.Vector2{X: bg[i].start + (-cam.Offset.Y+500)*.27, Y: float32(1000)}, rl.Vector2{X: bg[i].start + bg[i].angle + (-cam.Offset.Y+500)*.27, Y: -bg[i].length + 1000}, 3.5, rl.Color{R: 0, G: 0, B: 0, A: 255})
@@ -150,6 +160,21 @@ func checkColl() {
 }
 
 func move() {
+	bomb.Y += bv
+	//if bv > 0 {
+	//	bv -= 0.05
+	//}
+	if rl.IsKeyPressed(rl.KeyK) {
+		player.vel.X += rl.Clamp(20/(bomb.X-player.pos.X), -20, 20)
+		player.vel.Y += rl.Clamp(-60/(bomb.Y-player.pos.Y)*20, -20, 20)
+		bomb = rl.Vector2{X: 10000, Y: 10000}
+		bv = player.vel.Y + 10
+	}
+
+	if rl.IsKeyPressed(rl.KeyJ) {
+		bomb = player.pos
+	}
+
 	player.prevPos = player.pos
 	t += rl.GetFrameTime() * onLine.power / 25
 	if t < 1 {
@@ -221,7 +246,7 @@ func move() {
 
 	onFloor = false
 	//checkCollRect()
-	println(onFloor)
+	//println(onFloor)
 	checkCollRect()
 
 }
@@ -264,9 +289,18 @@ func main() {
 
 		if mode == 0 {
 			rl.BeginDrawing()
+			rl.ClearBackground(rl.Orange)
+			for i := range 15 {
+				r := float32((10*i + int(rl.GetTime()*10)) % 75)
+				rl.DrawCircle(int32((-cam.Offset.X+800)*.7), int32((-cam.Offset.Y+500)*.7), 12*r, rl.Color{R: 255, G: 255, B: 0, A: uint8(255 * ((-r + 75) / 75))})
+			}
 			rl.EndDrawing()
 		}
 		if mode == 1 {
+			if rl.IsKeyPressed(rl.KeyEnter) && playing {
+				mode = 2
+				playing = false
+			}
 			sTime := rl.GetShaderLocation(spire, "time")
 
 			rl.SetShaderValue(
@@ -322,18 +356,24 @@ func main() {
 
 		}
 		if mode == 2 {
+			if rl.IsKeyPressed(rl.KeyEnter) {
+				mode = 1
+				playing = true
+			}
 
-			if rl.IsKeyDown(rl.KeyW) {
-				cam.Offset.Y += 10
-			}
-			if rl.IsKeyDown(rl.KeyA) {
-				cam.Offset.X += 10
-			}
-			if rl.IsKeyDown(rl.KeyS) {
-				cam.Offset.Y -= 10
-			}
-			if rl.IsKeyDown(rl.KeyD) {
-				cam.Offset.X -= 10
+			if !playing {
+				if rl.IsKeyDown(rl.KeyW) {
+					cam.Offset.Y += 20
+				}
+				if rl.IsKeyDown(rl.KeyA) {
+					cam.Offset.X += 20
+				}
+				if rl.IsKeyDown(rl.KeyS) {
+					cam.Offset.Y -= 20
+				}
+				if rl.IsKeyDown(rl.KeyD) {
+					cam.Offset.X -= 20
+				}
 			}
 
 			rl.BeginDrawing()
@@ -343,6 +383,7 @@ func main() {
 			rl.ClearBackground(rl.Orange)
 			drawPlatsAndPlayer()
 			drawEvil()
+			rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
 
 			if isHolding {
 				sx := min(mouse.X, clickStart.X)
@@ -374,6 +415,9 @@ func main() {
 			if !rl.IsMouseButtonDown(rl.MouseButtonLeft) {
 				isHolding = false
 			}
+
+			rl.DrawFPS(0, 0)
+
 			rl.EndMode2D()
 			rl.EndDrawing()
 		}
