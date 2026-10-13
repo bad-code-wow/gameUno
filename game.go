@@ -51,6 +51,7 @@ var level []line
 var playing bool = false
 var bv float32 = 0
 var mode = 0
+var points [16]rl.Vector2
 
 var jumpTimeLeft = 100
 var onLine = line{0, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}
@@ -323,14 +324,14 @@ func main() {
 				mode = 2
 				playing = false
 			}
-			sTime := rl.GetShaderLocation(spire, "time")
+			loc := rl.GetShaderLocation(spire, "points")
+			data := make([]float32, len(points)*2)
+			for i, v := range points {
+				data[i*2] = v.X
+				data[i*2+1] = v.Y
+			}
 
-			rl.SetShaderValue(
-				spire,
-				sTime,
-				[]float32{float32(rl.GetTime())},
-				rl.ShaderUniformFloat,
-			)
+			rl.SetShaderValueV(spire, loc, data, rl.ShaderUniformIvec2, int32(len(points)))
 
 			move()
 			if frozen {
