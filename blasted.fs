@@ -1,42 +1,48 @@
+
+//yea tis like semi-ai coded but i would rather die a horrible death than have to code in glsl without error codes
+
 #version 100
 
 precision mediump float;
 
-// Input vertex attributes (from vertex shader)
 varying vec2 fragTexCoord;
 varying vec4 fragColor;
 
-// Input uniform values
 uniform sampler2D texture0;
 uniform vec4 colDiffuse;
 
-// NOTE: Add your custom variables here
-
-const vec2 size = vec2(800, 450);   // Framebuffer size
-const float samples = 7.0;          // Pixels per axis; higher = bigger glow, worse performance
-const float quality = 1.0;          // Defines size factor: Lower = smaller glow, better quality
+const vec2 size = vec2(800.0, 450.0);
+const float quality = 1.0;
 
 void main()
 {
-    vec4 sum = vec4(0);
-    vec2 sizeFactor = vec2(1)/size*quality;
+    vec2 texel = quality / size;
 
-    // Texel color fetching from texture sampler
     vec4 source = texture2D(texture0, fragTexCoord);
 
-    const int range = 3;            // should be = (samples - 1)/2;
+    // 5x5 weighted blur: 25 samples instead of 49
+    vec4 sum = vec4(0.0);
+    float totalWeight = 0.0;
 
-    for (int x = -range; x <= range; x++)
+    for (int x = -2; x <= 2; x++)
     {
-        for (int y = -range; y <= range; y++)
+        for (int y = -2; y <= 2; y++)
         {
-            sum += texture2D(texture0, fragTexCoord + vec2(x, y)*sizeFactor) * 2.0/(float(x+y)+0.1);
+            float weight = 1.0 /
+                (1.0 + float(x*x + y*y));
+
+            sum += texture2D(
+                texture0,
+                fragTexCoord + vec2(float(x), float(y)) * texel
+            ) * weight;
+
+            totalWeight += weight;
         }
     }
 
+    sum /= totalWeight;
 
-    float vin = abs(fragTexCoord.x-0.5) * 2;
+    float vin = abs(fragTexCoord.x - 0.5) * 2.0;
 
-    // Calculate final fragment color
-    gl_FragColor = ((sum/(samples*samples)) * (1.0) + source*(1-vin))*colDiffuse;
+    gl_FragColor = (sum + source * (1.0 - vin)) * colDiffuse;
 }

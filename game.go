@@ -1,3 +1,6 @@
+/*
+you can tell its human cus the comments suck and i need 2 4k monitors to real a full line
+*/
 package main
 
 import (
@@ -39,7 +42,8 @@ type levelFull struct {
 var bomb = rl.Vector2{X: 10000, Y: 10000}
 
 // test
-var levelRect = []rl.Rectangle{{X: 90, Y: 90, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
+
+var levelRect = []rl.Rectangle{{X: 90, Y: 290, Width: 190, Height: 190}, {X: 200, Y: 0, Width: 190, Height: 300}}
 var levelEvilRect = []rl.Rectangle{{X: 390, Y: 390, Width: 190, Height: 190}}
 var frozen = false
 var bg [500]bgLine
@@ -52,34 +56,82 @@ var playing bool = false
 var bv float32 = 0
 var mode = 0
 var points [16]rl.Vector2
+var pointsVel [16]rl.Vector2
+
+const drawSunBool = false
+
+var sunCol = rl.Yellow
+var bgCol = rl.Pink
+var playAndPlatCol = rl.Black
 
 var jumpTimeLeft = 100
 var onLine = line{0, rl.Vector2{X: 1300, Y: 600}, rl.Vector2{X: 100, Y: -800}}
 
+var colors []rl.Color = []rl.Color{rl.Black, rl.White, rl.Brown, rl.Red, rl.Orange, rl.Yellow, rl.Green, rl.Blue, rl.Pink, rl.Purple}
+var numKeys []int = []int{rl.KeyOne, rl.KeyTwo, rl.KeyThree, rl.KeyFour, rl.KeyFive, rl.KeySix, rl.KeySeven, rl.KeyEight, rl.KeyNine, rl.KeyZero}
+var numKeysMap map[int]int = map[int]int{
+	numKeys[0]: 1,
+	numKeys[1]: 2,
+	numKeys[2]: 3,
+	numKeys[3]: 4,
+	numKeys[4]: 5,
+	numKeys[5]: 6,
+	numKeys[6]: 7,
+	numKeys[7]: 8,
+	numKeys[8]: 9,
+	numKeys[9]: 0}
+
+var colorBgBoard board = board{buttonOps: func(k int) {
+	if k != -1 {
+		bgCol = colors[numKeysMap[k]]
+	}
+}, activation: rl.KeyB,
+	draw: func() {
+		rl.DrawText("changing back color", 0, 0, 32, rl.Black)
+	},
+}
+
+var boardList []board = []board{colorBgBoard}
+
 const maxJumpTime = 150
 
-func drawPlatsAndPlayer() {
+type board struct {
+	buttonOps  func(int)
+	activation int
+	draw       func()
+}
 
-	for i := range 15 {
-		r := float32((10*i + int(rl.GetTime()*10)) % 75)
-		rl.DrawCircle(int32((-cam.Offset.X+800)*.7), int32((-cam.Offset.Y+500)*.7), 12*r, rl.Color{R: 255, G: 255, B: 0, A: uint8(255 * ((-r + 75) / 75))})
+func drawSun() {
+	if drawSunBool {
+		for i := range 15 {
+			r := float32((10*i + int(rl.GetTime()*10)) % 75)
+			rl.DrawCircle(int32((-cam.Offset.X+800)*.95), int32((-cam.Offset.Y+500)*.95), 12*r, rl.Color{R: sunCol.R, G: sunCol.G, B: sunCol.B, A: uint8(255 * ((-r + 75) / 75))})
+		}
 	}
-	rl.DrawCircleV(bomb, 32, rl.Black)
+}
 
-	for i := range 500 {
-		rl.DrawLineEx(rl.Vector2{X: bg[i].start + (-cam.Offset.Y+500)*.27, Y: float32(1000)}, rl.Vector2{X: bg[i].start + bg[i].angle + (-cam.Offset.Y+500)*.27, Y: -bg[i].length + 1000}, 3.5, rl.Color{R: 0, G: 0, B: 0, A: 255})
-	}
+func drawPlayer() {
 	rl.DrawRectangleRec(rl.Rectangle{
 		X:      player.pos.X,
 		Y:      player.pos.Y,
 		Width:  16,
 		Height: 16,
-	}, rl.Black)
+	}, playAndPlatCol)
+	rl.DrawCircleV(bomb, 32, playAndPlatCol)
+}
+func drawBg() {
+	for i := range 500 {
+		rl.DrawLineEx(rl.Vector2{X: bg[i].start + (-cam.Offset.X+500)*.3, Y: float32(1000)}, rl.Vector2{X: bg[i].start + bg[i].angle + (-cam.Offset.X+500)*.3, Y: -bg[i].length + 1000}, 3.5, playAndPlatCol)
+	}
+
+}
+func drawPlats() {
+
 	for i := range level {
-		rl.DrawLineEx(level[i].Start, level[i].End, 10, rl.Black)
+		rl.DrawLineEx(level[i].Start, level[i].End, 10, playAndPlatCol)
 	}
 	for i := range levelRect {
-		rl.DrawRectangleRec(levelRect[i], rl.Black)
+		rl.DrawRectangleRec(levelRect[i], playAndPlatCol)
 	}
 }
 
@@ -98,65 +150,133 @@ func drawEvil() {
 	}
 }
 
-func checkCollRect() {
-	/*
-	*~*~*~*~*~*~*
+type side struct {
+	pos rl.Vector2
+	hit bool
+}
 
-	*magic numbers = magic code*
+func check4To1Line(l1, l2, p11, p12, p21, p22, p31, p32, p41, p42 rl.Vector2) side {
+	// println("not")
+	var pos rl.Vector2
+	if rl.CheckCollisionLines(l1, l2, p11, p12, &pos) {
+		return side{pos, true}
+	}
 
-	*~*~*~*~*~*~*
+	if rl.CheckCollisionLines(l1, l2, p21, p22, &pos) {
+		return side{pos, true}
+	}
 
-	 */
+	if rl.CheckCollisionLines(l1, l2, p31, p32, &pos) {
+		return side{pos, true}
+	}
+
+	if rl.CheckCollisionLines(l1, l2, p41, p42, &pos) {
+		return side{pos, true}
+	}
+	return side{hit: false}
+}
+
+type side2 struct {
+	pos rl.Vector2
+	sde int
+}
+
+func getColPoints() []side2 {
+	var out []side2
+
+	tl := rl.Vector2{X: player.pos.X, Y: player.pos.Y}
+	tr := rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y}
+	bl := rl.Vector2{X: player.pos.X, Y: player.pos.Y + 16}
+	br := rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y + 16}
+
+	player.pos = player.pos.Add(player.vel)
+
+	ntl := rl.Vector2{X: player.pos.X, Y: player.pos.Y}
+	ntr := rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y}
+	nbl := rl.Vector2{X: player.pos.X, Y: player.pos.Y + 16}
+	nbr := rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y + 16}
+
+	player.pos = player.pos.Subtract(player.vel)
+
+	checkSide := func(l1, l2 rl.Vector2) side {
+		return check4To1Line(l1, l2, tl, ntl, tr, ntr, bl, nbl, br, nbr)
+	}
+
 	for i := range levelRect {
-		p1 := rl.Vector2{X: 0, Y: 0}
-		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X, Y: player.pos.Y + 16}, rl.Vector2{X: player.prevPos.X, Y: player.prevPos.Y + 16}, rl.Vector2{X: levelRect[i].X - 15, Y: levelRect[i].Y}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y}, &p1) {
-			player.pos.Y = p1.Y - 16
-			jumpTimeLeft = maxJumpTime
-			player.vel.Y = min(0, player.vel.Y)
-			player.pos.Y += player.vel.Y
-			onFloor = true
-			jumping = true
-			return
+
+		//here be point findin
+		l := levelRect[i]
+		t1 := rl.Vector2{X: l.X, Y: l.Y}
+		t2 := rl.Vector2{X: l.X + l.Width, Y: l.Y}
+		if checkSide(t1, t2).hit {
+			out = append(out, side2{pos: checkSide(t1, t2).pos, sde: 1})
 		}
 
-		if rl.CheckCollisionLines(rl.Vector2{X: player.pos.X + 16, Y: player.pos.Y}, rl.Vector2{X: player.prevPos.X + 16, Y: player.prevPos.Y}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X, Y: levelRect[i].Y + levelRect[i].Height}, &p1) && player.pos.Y+14 > levelRect[i].Y {
-			//fmt.Println("l")
-			if rl.IsKeyDown(rl.KeyA) || player.vel.X < 0 && !rl.IsKeyDown(rl.KeyD) {
-				player.prevPos = player.pos
-				player.pos.X += player.vel.X
-			} else {
+		l1 := rl.Vector2{X: l.X, Y: l.Y}
+		l2 := rl.Vector2{X: l.X, Y: l.Y + l.Height}
 
-				player.pos.X = p1.X - 16
-				player.vel.X = 0
-			}
-		}
-		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y - 16}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height}, &p1) && player.pos.Y+14 > levelRect[i].Y {
-
-			if rl.IsKeyDown(rl.KeyD) {
-				player.prevPos = player.pos
-				player.pos.X += player.vel.X
-			} else {
-
-				player.pos.X = p1.X
-				player.vel.X = 0
-			}
+		if checkSide(l1, l2).hit {
+			out = append(out, side2{pos: checkSide(l1, l2).pos, sde: 2})
 		}
 
-		if rl.CheckCollisionLines(player.pos, player.prevPos, rl.Vector2{X: levelRect[i].X - 15, Y: levelRect[i].Y + levelRect[i].Height}, rl.Vector2{X: levelRect[i].X + levelRect[i].Width, Y: levelRect[i].Y + levelRect[i].Height}, &p1) {
-			player.pos.Y = p1.Y + 1
-			player.vel.Y = max(2, player.vel.Y)
-			jumpTimeLeft = 0
-			//player.pos.Y += player.vel.Y
+		r1 := rl.Vector2{X: l.X + l.Width, Y: l.Y}
+		r2 := rl.Vector2{X: l.X + l.Width, Y: l.Y + l.Height}
 
+		if checkSide(r1, r2).hit {
+			out = append(out, side2{pos: checkSide(r1, r2).pos, sde: 3})
+		}
+
+		b1 := rl.Vector2{X: l.X, Y: l.Y + l.Height}
+		b2 := rl.Vector2{X: l.X + l.Width, Y: l.Y + l.Height}
+		if checkSide(b1, b2).hit {
+			out = append(out, side2{pos: checkSide(b1, b2).pos, sde: 4})
 		}
 
 	}
+	return out
+}
+
+func checkCollRect() {
+
+	var add rl.Vector2
+	var sideHits [4]bool
+	colPoints := getColPoints()
+	var minDist float32 = 1e25
+	minIndex := -1
+	for i := range colPoints {
+		sideHits[colPoints[i].sde-1] = true
+		if colPoints[i].pos.Distance(player.pos) < minDist {
+			minIndex = i
+		}
+	}
+	if minIndex != -1 {
+
+		player.pos = colPoints[minIndex].pos.Add(add)
+	}
+
+	if sideHits[0] {
+		player.pos.Y -= 16
+		player.vel.Y = 0
+		onFloor = true
+	}
+	if sideHits[1] {
+		player.pos.X -= 16
+		player.vel.X = min(player.vel.X, 0)
+	}
+	if sideHits[2] {
+		player.vel.X = max(player.vel.X, 0)
+	}
+	if sideHits[3] {
+		player.vel.Y = 0
+		jumpTimeLeft = 0
+	}
+
 }
 
 func checkColl() {
 	for i := range level {
 		next := rl.Vector2{X: player.pos.X + player.vel.X, Y: player.pos.Y + player.vel.Y}
-		if rl.CheckCollisionLines(player.pos, player.prevPos, level[i].Start, level[i].End, &next) || rl.CheckCollisionLines(player.pos, next, level[i].Start, level[i].End, &next) {
+		if rl.CheckCollisionLines(next, player.pos, level[i].Start, level[i].End, &next) || rl.CheckCollisionLines(player.pos, next, level[i].Start, level[i].End, &next) {
 			player.prevPos = player.pos
 			player.pos = next
 			onLine = level[i]
@@ -169,6 +289,7 @@ func checkColl() {
 func move() {
 	player.vel.Y = max(player.vel.Y, -59)
 	bv += rl.GetFrameTime() * 120
+	bv *= 1.01
 	bomb.Y += bv
 	//if bv > 0 {
 	//	bv -= 0.05
@@ -192,39 +313,16 @@ func move() {
 
 	if rl.IsKeyPressed(rl.KeyJ) {
 		bomb = player.pos
-		bv = player.vel.Y * 1.1
+		bv = player.vel.Y + 12
 	}
 
 	player.prevPos = player.pos
-	t += rl.GetFrameTime() * onLine.Power / 25
-	if t < 1 {
-		onFloor = true
 
-		player.pos.X = rl.Vector2Lerp(onLine.Start, onLine.End, t).X
-		if onLine.Start.Y < onLine.End.Y {
-			player.pos.Y = rl.Vector2Lerp(onLine.Start, onLine.End, t).Y - 10
-		} else {
-			player.pos.Y = rl.Vector2Lerp(onLine.Start, onLine.End, t).Y + 10
-		}
-		k := rl.Vector2{X: onLine.End.X - onLine.Start.X, Y: onLine.End.Y - onLine.Start.Y}
-		player.vel = rl.Vector2{X: k.X / 25, Y: k.Y / 25}
-		if rl.IsKeyPressed(rl.KeySpace) {
-			t = 100
-			player.vel.Y = -30
-			//frozen = true
-			checkColl()
-		}
-		return
-
-	}
 	if t < 1.1 && t > 1 {
-		//checkCollRect()
 		checkColl()
 		frozen = true
 	}
-	//checkCollRect()
 	if player.pos.Y > 777 {
-		//checkCollRect()
 		onFloor = true
 		player.pos.Y = 777
 		player.vel.Y = 0
@@ -232,43 +330,50 @@ func move() {
 		jumpTimeLeft = maxJumpTime
 	}
 
-	//checkCollRect()
 	jumpTimeLeft -= 10
 	if rl.IsKeyDown(rl.KeySpace) && jumpTimeLeft > 0 && jumping {
 		player.vel.Y = -30
 	}
 
-	checkCollRect()
 	if rl.IsKeyDown(rl.KeyA) {
 		player.vel.X -= 2
 	}
-	checkCollRect()
 	if rl.IsKeyDown(rl.KeyD) {
 		player.vel.X += 2
 	}
-	//checkCollRect()
+	checkCollRect()
 	if !onFloor {
-		//checkCollRect()
 		player.vel.Y += rl.GetFrameTime() * 120
+		player.pos.Y += player.vel.Y
 	} else {
+		player.vel.Y = -1
+		if rl.IsKeyDown(rl.KeySpace) {
+			player.pos.Y -= 10
+			player.vel.Y = -30
+		}
 		jumpTimeLeft = maxJumpTime
 	}
 
-	player.pos.X += player.vel.X
+	player.pos.X += player.vel.X * 2
 
 	checkColl()
 
 	player.vel = player.vel.Multiply(rl.Vector2{X: 0.9, Y: 1.01})
 
-	player.pos.Y += player.vel.Y
-	player.pos.X += player.vel.X
-	checkCollRect()
-
 	onFloor = false
-	//checkCollRect()
 	//println(onFloor)
-	checkCollRect()
 
+}
+
+func getDownNumberKeys() int32 {
+	var output int32
+	for i := range 10 {
+		if rl.IsKeyDown(int32(numKeys[i])) {
+			output = int32(numKeys[i])
+			return output
+		}
+	}
+	return -1
 }
 
 func main() {
@@ -301,7 +406,20 @@ func main() {
 	tex2 := rl.LoadRenderTexture(1600, 900)
 	defer rl.UnloadRenderTexture(tex)
 
+	for i := 0; i < 16; i++ {
+		points[i] = rl.Vector2{X: rand.Float32(), Y: rand.Float32()}
+	}
+
 	for !rl.WindowShouldClose() {
+		for i := 0; i < 16; i++ {
+			pointsVel[i].X += rand.Float32() - 0.5
+			pointsVel[i].X *= 0.95
+			pointsVel[i].Y *= 0.95
+			pointsVel[i].Y += rand.Float32() - 0.5
+			points[i].X = float32(math.Mod(float64(points[i].X+pointsVel[i].X/1000), 1))
+			points[i].Y = float32(math.Mod(float64(points[i].Y+pointsVel[i].Y/1000), 1))
+
+		}
 
 		if rl.IsKeyPressed(rl.KeySpace) && mode == 0 {
 			mode = 1
@@ -311,12 +429,12 @@ func main() {
 		}
 
 		if mode == 0 {
+
 			rl.BeginDrawing()
-			rl.ClearBackground(rl.Orange)
-			for i := range 15 {
-				r := float32((10*i + int(rl.GetTime()*10)) % 75)
-				rl.DrawCircle(int32((-cam.Offset.X+800)*.7), int32((-cam.Offset.Y+500)*.7), 12*r, rl.Color{R: 255, G: 255, B: 0, A: uint8(255 * ((-r + 75) / 75))})
-			}
+
+			rl.ClearBackground(bgCol)
+
+			drawSun()
 			rl.EndDrawing()
 		}
 		if mode == 1 {
@@ -331,7 +449,7 @@ func main() {
 				data[i*2+1] = v.Y
 			}
 
-			rl.SetShaderValueV(spire, loc, data, rl.ShaderUniformIvec2, int32(len(points)))
+			rl.SetShaderValueV(spire, loc, data, rl.ShaderUniformVec2, int32(len(points)))
 
 			move()
 			if frozen {
@@ -343,10 +461,14 @@ func main() {
 			cam.Offset.Y = ((player.pos.Y*-1 + 550) + cam.Offset.Y*(easing-1)) / easing
 
 			rl.BeginTextureMode(tex)
-			rl.ClearBackground(rl.Orange)
+			rl.ClearBackground(bgCol)
 			rl.BeginMode2D(cam)
-			drawPlatsAndPlayer()
-			rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
+			drawSun()
+			drawBg()
+			drawPlats()
+			drawPlayer()
+
+			rl.DrawRectangle(-100000, 792, 10000890, 1000, playAndPlatCol)
 			rl.EndMode2D()
 			rl.EndTextureMode()
 
@@ -355,17 +477,19 @@ func main() {
 			rl.BeginMode2D(cam)
 			drawEvil()
 			rl.EndMode2D()
+			rl.DrawFPS(0, 0)
 			rl.EndTextureMode()
 
 			rl.BeginDrawing()
 			rl.BeginShaderMode(bloom)
-			rl.ClearBackground(rl.Orange)
+			rl.ClearBackground(bgCol)
 			rl.DrawTextureRec(tex.Texture, rl.Rectangle{
 				X:      0,
 				Y:      0,
 				Width:  1600,
 				Height: -900,
 			}, rl.Vector2{}, rl.White)
+			rl.EndShaderMode()
 			rl.BeginShaderMode(spire)
 			rl.DrawTextureRec(tex2.Texture, rl.Rectangle{
 				X:      0,
@@ -374,11 +498,18 @@ func main() {
 				Height: -900,
 			}, rl.Vector2{}, rl.White)
 			rl.EndShaderMode()
-			rl.EndShaderMode()
 			rl.EndDrawing()
 
 		}
 		if mode == 2 {
+
+			for i := range boardList {
+				if rl.IsKeyDown(int32(boardList[i].activation)) {
+					boardList[i].draw()
+					boardList[i].buttonOps(int(getDownNumberKeys()))
+				}
+			}
+
 			if rl.IsKeyPressed(rl.KeyEnter) {
 				mode = 1
 				playing = true
@@ -403,10 +534,12 @@ func main() {
 			rl.BeginMode2D(cam)
 
 			mouse := rl.GetScreenToWorld2D(rl.GetMousePosition(), cam)
-			rl.ClearBackground(rl.Orange)
-			drawPlatsAndPlayer()
+			rl.ClearBackground(bgCol)
+			drawPlats()
+			drawBg()
 			drawEvil()
-			rl.DrawRectangle(-100000, 792, 10000890, 1000, rl.Black)
+			drawPlayer()
+			rl.DrawRectangle(-100000, 792, 10000890, 1000, playAndPlatCol)
 
 			if isHolding {
 				sx := min(mouse.X, clickStart.X)
@@ -456,7 +589,7 @@ func main() {
 				if err != nil {
 					println(err.Error())
 				} else {
-					rl.DrawText("level saved", 0, 0, 32, rl.Black)
+					rl.DrawText("level saved", 0, 0, 32, playAndPlatCol)
 				}
 
 			}
@@ -476,7 +609,7 @@ func main() {
 				if err != nil {
 					println(err.Error())
 				} else {
-					rl.DrawText("level loaded", 0, 0, 32, rl.Black)
+					rl.DrawText("level loaded", 0, 0, 32, playAndPlatCol)
 				}
 			}
 			rl.EndDrawing()
