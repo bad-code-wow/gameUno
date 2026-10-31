@@ -19,7 +19,7 @@ const float pi = 3.14159;
 
 vec3 hsvConv(float h){
     float H = h/10.0 - 1.0;
-    return vec3(sin(H),sin(H+pi/3),sin(H+2*pi/3));
+    return vec3(sin(H),sin(H+pi/3.0),sin(H+2.0*pi/3.0));
 }
 
 float dist(vec2 p){
