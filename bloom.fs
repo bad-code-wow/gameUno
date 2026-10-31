@@ -35,8 +35,8 @@ void main()
     }
 
 
-    float vin = float(abs(fragTexCoord.x-0.5) * 2);
+    float vin = float(abs(fragTexCoord.x-0.5) * 2.0);
 
     // Calculate final fragment color
-    gl_FragColor = ((sum/(samples*samples)) * (1.0) + source*(1-vin))*colDiffuse;
+    gl_FragColor = ((sum/(samples*samples)) + source*(1.0-vin))*colDiffuse;
 }
