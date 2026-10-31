@@ -394,14 +394,14 @@ func main() {
 	rl.InitWindow(1600, 900, "game")
 	rl.SetTargetFPS(60)
 
-	bloom := rl.LoadShader(
-		"",
-		"bloom.fs",
-	)
-	spire := rl.LoadShader(
-		"",
-		"spire.fs",
-	)
+	// bloom := rl.LoadShader(
+	// 	"",
+	// 	"bloom.fs",
+	// )
+	// spire := rl.LoadShader(
+	// 	"",
+	// 	"spire.fs",
+	// )
 	tex := rl.LoadRenderTexture(1600, 900)
 	tex2 := rl.LoadRenderTexture(1600, 900)
 	defer rl.UnloadRenderTexture(tex)
@@ -442,14 +442,14 @@ func main() {
 				mode = 2
 				playing = false
 			}
-			loc := rl.GetShaderLocation(spire, "points")
+			// loc := rl.GetShaderLocation(spire, "points")
 			data := make([]float32, len(points)*2)
 			for i, v := range points {
 				data[i*2] = v.X
 				data[i*2+1] = v.Y
 			}
 
-			rl.SetShaderValueV(spire, loc, data, rl.ShaderUniformVec2, int32(len(points)))
+			// rl.SetShaderValueV(spire, loc, data, rl.ShaderUniformVec2, int32(len(points)))
 
 			move()
 			if frozen {
@@ -481,7 +481,7 @@ func main() {
 			rl.EndTextureMode()
 
 			rl.BeginDrawing()
-			rl.BeginShaderMode(bloom)
+			// rl.BeginShaderMode(bloom)
 			rl.ClearBackground(bgCol)
 			rl.DrawTextureRec(tex.Texture, rl.Rectangle{
 				X:      0,
@@ -489,15 +489,15 @@ func main() {
 				Width:  1600,
 				Height: -900,
 			}, rl.Vector2{}, rl.White)
-			rl.EndShaderMode()
-			rl.BeginShaderMode(spire)
+			// rl.EndShaderMode()
+			// rl.BeginShaderMode(spire)
 			rl.DrawTextureRec(tex2.Texture, rl.Rectangle{
 				X:      0,
 				Y:      0,
 				Width:  1600,
 				Height: -900,
 			}, rl.Vector2{}, rl.White)
-			rl.EndShaderMode()
+			// rl.EndShaderMode()
 			rl.EndDrawing()
 
 		}
